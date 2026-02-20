@@ -3,7 +3,7 @@
 </script>
 
 <template>
-<p>This is some test content for the AI to find</p>
+    <p class="text-site-body">This is some test content for the AI to find</p>
 </template>
 
 <style scoped>

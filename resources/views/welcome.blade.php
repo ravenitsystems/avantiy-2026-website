@@ -1,3 +1,16 @@
+<?php
+    opcache_reset();
+    //print '<p>Size ' . filesize('/var/www/avantiy_local_com/webroot/app/Http/Controllers/Api/Session/Status.php') . '</p>';
+
+    $d = file_get_contents("/var/www/avantiy_local_com/webroot/app/Http/Controllers/Api/Session/Status.php");
+
+    print $d;
+die();
+    //phpinfo();
+    return;
+    ?>
+
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
