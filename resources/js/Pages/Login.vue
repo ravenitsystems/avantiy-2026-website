@@ -1,22 +1,30 @@
 <script setup>
-import { ref } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
+import { ref, onMounted } from 'vue';
+import { RouterLink, useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
 import { useSession } from '../composables/useSession';
+import { useToast } from '../composables/useToast';
 
 const router = useRouter();
+const route = useRoute();
 const { fetchSession } = useSession();
+const toast = useToast();
 
 const email = ref('');
 const password = ref('');
 const loading = ref(false);
-const errorMessage = ref('');
+
+onMounted(() => {
+    if (route.query.reset === 'success') {
+        toast.success('Your password has been reset. You can now sign in.');
+        router.replace({ query: {} });
+    }
+});
 const step = ref('credentials');
 const twoFactorCode = ref('');
 const rememberDevice = ref(false);
 
 async function onSubmit() {
-    errorMessage.value = '';
     loading.value = true;
     try {
         const body =
@@ -31,7 +39,7 @@ async function onSubmit() {
         const { data } = await axios.post('/api/session/login', body);
 
         if (data.status === 'FAIL') {
-            errorMessage.value = data.data?.message ?? 'Invalid email or password.';
+            toast.error(data.data?.message ?? 'Invalid email or password.');
             return;
         }
 
@@ -44,7 +52,7 @@ async function onSubmit() {
         router.push({ name: 'dashboard-home' });
     } catch (err) {
         const msg = err.response?.data?.data?.message ?? err.response?.data?.message ?? 'Something went wrong.';
-        errorMessage.value = msg;
+        toast.error(msg);
     } finally {
         loading.value = false;
     }
@@ -53,7 +61,6 @@ async function onSubmit() {
 function backToCredentials() {
     step.value = 'credentials';
     twoFactorCode.value = '';
-    errorMessage.value = '';
 }
 </script>
 
@@ -67,10 +74,6 @@ function backToCredentials() {
                 </p>
 
                 <form class="mt-6 space-y-4" @submit.prevent="onSubmit">
-                    <div v-if="errorMessage" class="rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-300">
-                        {{ errorMessage }}
-                    </div>
-
                     <template v-if="step === 'credentials'">
                         <div>
                             <label for="login-email" class="block text-sm font-medium text-site-body">Email</label>

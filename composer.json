@@ -6,11 +6,17 @@
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
-        "php": "^8.2",
+        "php": "^8.5",
+        "getbrevo/brevo-php": "1.*",
+        "guzzlehttp/guzzle": "^7.10",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
+        "monolog/monolog": "^3.9",
         "pragmarx/google2fa": "^9.0",
-        "predis/predis": "^3.4"
+        "predis/predis": "^3.4",
+        "spatie/laravel-sitemap": "^7.3",
+        "stripe/stripe-php": "14.7.*",
+        "ext-curl": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

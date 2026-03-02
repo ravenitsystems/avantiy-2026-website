@@ -7,12 +7,6 @@ const dropdownOpen = ref(false);
 const messages = ref([]);
 const messagesLoading = ref(false);
 
-const exampleMessages = [
-    { id: 1, subject: 'Welcome to the dashboard', sent_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(), read: false },
-    { id: 2, subject: 'Your website backup is complete', sent_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), read: false },
-    { id: 3, subject: 'Scheduled maintenance on Sunday', sent_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), read: false },
-];
-
 const unreadCount = computed(() => messages.value.filter((m) => !m.read).length);
 const hasUnread = computed(() => unreadCount.value > 0);
 const unreadMessages = computed(() => messages.value.filter((m) => !m.read));
@@ -40,27 +34,46 @@ function handleClickOutside(event) {
     }
 }
 
+const POLL_INTERVAL_MS = 60_000; // 60 seconds
+let pollTimer = null;
+
 async function fetchMessages() {
     messagesLoading.value = true;
     try {
-        const { data } = await axios.get('/api/messages');
-        const payload = data?.data ?? data;
-        const list = Array.isArray(payload) ? payload : (payload?.messages ?? []);
-        messages.value = list.length > 0 ? list : exampleMessages;
+        const { data } = await axios.get('/api/message/index');
+        if (data.status === 'PASS' && data.data?.messages) {
+            messages.value = data.data.messages;
+        } else {
+            messages.value = [];
+        }
     } catch {
-        messages.value = exampleMessages;
+        messages.value = [];
     } finally {
         messagesLoading.value = false;
+    }
+}
+
+function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(fetchMessages, POLL_INTERVAL_MS);
+}
+
+function stopPolling() {
+    if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
     }
 }
 
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
     fetchMessages();
+    startPolling();
 });
 
 onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside);
+    stopPolling();
 });
 </script>
 
@@ -106,17 +119,33 @@ onUnmounted(() => {
                 </div>
                 <template v-else-if="unreadMessages.length === 0">
                     <div class="px-4 py-6 text-center text-sm text-site-body">No unread messages</div>
+                    <RouterLink
+                        :to="{ name: 'dashboard-messages' }"
+                        class="block border-t border-slate-700/80 px-4 py-3 text-center text-sm text-cta hover:bg-slate-800/80"
+                        @click="close"
+                    >
+                        View all messages
+                    </RouterLink>
                 </template>
-                <RouterLink
-                    v-for="msg in unreadMessages"
-                    :key="msg.id"
-                    :to="`/dashboard/messages/${msg.id}`"
-                    class="block border-b border-slate-700/80 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-slate-800/80"
-                    @click="close"
-                >
-                    <p class="text-sm font-medium text-site-heading line-clamp-1">{{ msg.subject || 'No subject' }}</p>
-                    <p class="mt-0.5 text-xs text-site-body">{{ formatMessageDate(msg.sent_at) }}</p>
-                </RouterLink>
+                <template v-else>
+                    <RouterLink
+                        v-for="msg in unreadMessages"
+                        :key="msg.id"
+                        :to="{ name: 'dashboard-message', params: { id: msg.id } }"
+                        class="block border-b border-slate-700/80 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-slate-800/80"
+                        @click="close"
+                    >
+                        <p class="text-sm font-medium text-site-heading line-clamp-1">{{ msg.subject || 'No subject' }}</p>
+                        <p class="mt-0.5 text-xs text-site-body">{{ formatMessageDate(msg.sent_at) }}</p>
+                    </RouterLink>
+                    <RouterLink
+                        :to="{ name: 'dashboard-messages' }"
+                        class="block border-t border-slate-700/80 px-4 py-3 text-center text-sm text-cta hover:bg-slate-800/80"
+                        @click="close"
+                    >
+                        View all messages
+                    </RouterLink>
+                </template>
             </div>
         </div>
     </div>

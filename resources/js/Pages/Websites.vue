@@ -1,28 +1,27 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
+import { RouterLink } from 'vue-router';
 import axios from 'axios';
 
-const activeTab = ref('owned');
 const ownedSites = ref([]);
-const sharedSites = ref([]);
+const errorModalOpen = ref(false);
+const errorModalMessage = ref('');
+const editLoadingId = ref(null);
+const meta = ref({ total: 0, per_page: 12, current_page: 1, last_page: 1 });
 const loading = ref(false);
-const createLoading = ref(false);
-const createFormOpen = ref(false);
-const createSiteName = ref('');
-const createDomain = ref('');
-const createError = ref('');
+const searchQuery = ref('');
+const currentPage = ref(1);
+const perPage = ref(12);
 
-const tabs = [
-    { id: 'owned', label: 'Customer Owned Sites' },
-    { id: 'shared', label: 'Shared With Me' },
-];
-
-async function fetchOwnedSites() {
+async function fetchSites() {
     loading.value = true;
     try {
-        const { data } = await axios.get('/api/website/index');
+        const params = { page: currentPage.value, per_page: perPage.value };
+        if (searchQuery.value) params.search = searchQuery.value;
+        const { data } = await axios.get('/api/website/index', { params });
         const payload = data?.data ?? data;
         ownedSites.value = payload?.websites ?? [];
+        meta.value = payload?.meta ?? { total: 0, per_page: 12, current_page: 1, last_page: 1 };
     } catch {
         ownedSites.value = [];
     } finally {
@@ -30,93 +29,110 @@ async function fetchOwnedSites() {
     }
 }
 
+function applySearch() {
+    currentPage.value = 1;
+    fetchSites();
+}
+
+function goToPage(p) {
+    if (p >= 1 && p <= meta.value.last_page) {
+        currentPage.value = p;
+        fetchSites();
+    }
+}
+
+async function editWebsite(site) {
+    editLoadingId.value = site.id;
+    errorModalMessage.value = '';
+    errorModalOpen.value = false;
+    try {
+        const { data } = await axios.get(`/api/website/editurl/${site.id}`);
+        const payload = data?.data ?? data;
+        if (payload?.redirect_url) {
+            window.location.href = payload.redirect_url;
+            return;
+        }
+        if (payload?.message) {
+            errorModalMessage.value = payload.message;
+            errorModalOpen.value = true;
+        } else {
+            errorModalMessage.value = 'An unexpected error occurred.';
+            errorModalOpen.value = true;
+        }
+    } catch (err) {
+        const msg = err.response?.data?.data?.message ?? err.response?.data?.message ?? 'Failed to open editor.';
+        errorModalMessage.value = msg;
+        errorModalOpen.value = true;
+    } finally {
+        editLoadingId.value = null;
+    }
+}
+
+function closeErrorModal() {
+    errorModalOpen.value = false;
+}
+
 function formatDate(isoString) {
     if (!isoString) return '—';
     return new Date(isoString).toLocaleDateString(undefined, { dateStyle: 'short' });
 }
 
-function openCreateForm() {
-    createFormOpen.value = true;
-    createSiteName.value = '';
-    createDomain.value = '';
-    createError.value = '';
-}
-
-function closeCreateForm() {
-    createFormOpen.value = false;
-}
-
-async function submitCreate() {
-    createError.value = '';
-    const name = createSiteName.value?.trim();
-    if (!name) {
-        createError.value = 'Site name is required.';
-        return;
-    }
-    createLoading.value = true;
-    try {
-        await axios.post('/api/website/create', {
-            site_name: name,
-            domain: createDomain.value?.trim() ?? '',
-        });
-        closeCreateForm();
-        await fetchOwnedSites();
-    } catch (err) {
-        const msg = err.response?.data?.data?.message ?? err.response?.data?.message ?? 'Could not create site.';
-        createError.value = msg;
-    } finally {
-        createLoading.value = false;
-    }
-}
+watch([currentPage, perPage], () => {
+    if (loading.value) return;
+    fetchSites();
+});
 
 onMounted(() => {
-    fetchOwnedSites();
+    fetchSites();
 });
 </script>
 
 <template>
     <div>
         <h1 class="text-xl font-semibold text-site-heading">Websites</h1>
-        <p class="mt-1 text-sm text-site-body">Manage your customer-owned sites and sites shared with you.</p>
+        <p class="mt-1 text-sm text-site-body">Manage your sites.</p>
 
-        <!-- Tabs -->
-        <div class="mt-6 border-b border-slate-800">
-            <nav class="-mb-px flex gap-6" aria-label="Tabs">
-                <button
-                    v-for="tab in tabs"
-                    :key="tab.id"
-                    type="button"
-                    class="border-b-2 py-3 text-sm font-medium transition-colors"
-                    :class="activeTab === tab.id
-                        ? 'border-site-accent text-site-heading'
-                        : 'border-transparent text-site-body hover:border-slate-600 hover:text-site-heading'"
-                    @click="activeTab = tab.id"
-                >
-                    {{ tab.label }}
-                </button>
-            </nav>
-        </div>
-
-        <!-- Tab panels -->
-        <div class="mt-6">
-            <div v-show="activeTab === 'owned'" class="space-y-4">
-                <div class="flex items-center justify-between">
-                    <span class="text-sm text-site-body">Sites you own</span>
-                    <button
-                        type="button"
+        <div class="mt-6 space-y-4">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <input
+                    v-model="searchQuery"
+                    type="text"
+                    class="max-w-xs rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-site-body placeholder-slate-500"
+                    placeholder="Search sites…"
+                    @keydown.enter="applySearch"
+                />
+                <div class="flex items-center gap-2">
+                    <RouterLink
+                        :to="{ name: 'dashboard-templates' }"
                         class="rounded-lg bg-cta px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-cta-hover"
-                        @click="openCreateForm"
                     >
                         Create site
+                    </RouterLink>
+                    <button
+                        type="button"
+                        class="rounded-lg border border-slate-600 px-3 py-2 text-sm text-site-body hover:bg-slate-800"
+                        @click="applySearch"
+                    >
+                        Search
                     </button>
                 </div>
-                <div v-if="loading" class="py-6 text-center text-site-body">Loading…</div>
-                <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <article
-                        v-for="site in ownedSites"
-                        :key="site.id"
-                        class="rounded-lg border border-slate-800 bg-slate-900/50 p-4 transition-colors hover:border-slate-700"
-                    >
+            </div>
+
+            <div v-if="loading" class="py-12 text-center text-site-body">Loading…</div>
+            <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <article
+                    v-for="site in ownedSites"
+                    :key="site.id"
+                    class="flex flex-col overflow-hidden rounded-lg border border-slate-800 bg-slate-900/50 transition-colors hover:border-slate-700"
+                >
+                    <div class="aspect-video shrink-0 bg-slate-800">
+                        <img
+                            :src="`/media/websites/t_${site.duda_id}.png`"
+                            :alt="site.site_name"
+                            class="h-full w-full object-cover"
+                        />
+                    </div>
+                    <div class="flex flex-1 flex-col p-4">
                         <div class="flex items-start justify-between gap-2">
                             <h3 class="font-medium text-site-heading">{{ site.site_name }}</h3>
                             <span
@@ -128,87 +144,74 @@ onMounted(() => {
                                 {{ site.is_published ? 'Published' : 'Draft' }}
                             </span>
                         </div>
-                        <p class="mt-1 text-sm text-site-body">
-                            {{ site.domain || 'No domain' }}
-                        </p>
+                        <p class="mt-1 text-sm text-site-body">{{ site.domain || 'No domain' }}</p>
                         <p class="mt-1 text-xs text-site-body">Created {{ formatDate(site.created_at) }}</p>
-                    </article>
-                </div>
-                <p v-if="!loading && activeTab === 'owned' && ownedSites.length === 0" class="text-site-body">
-                    No customer-owned sites yet. Create one to get started.
-                </p>
+                        <div class="mt-3">
+                            <button
+                                type="button"
+                                class="rounded-lg border border-slate-600 px-3 py-1.5 text-sm font-medium text-site-body transition-colors hover:bg-slate-800 disabled:opacity-50"
+                                :disabled="editLoadingId === site.id"
+                                @click="editWebsite(site)"
+                            >
+                                {{ editLoadingId === site.id ? 'Opening…' : 'Edit Website' }}
+                            </button>
+                        </div>
+                    </div>
+                </article>
             </div>
 
-            <div v-show="activeTab === 'shared'" class="space-y-4">
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <article
-                        v-for="site in sharedSites"
-                        :key="site.id"
-                        class="rounded-lg border border-slate-800 bg-slate-900/50 p-4 transition-colors hover:border-slate-700"
-                    >
-                        <h3 class="font-medium text-site-heading">{{ site.site_name }}</h3>
-                        <p class="mt-1 text-sm text-site-body">{{ site.domain || 'No domain' }}</p>
-                    </article>
+            <p v-if="!loading && ownedSites.length === 0" class="text-site-body">
+                No sites found.
+            </p>
+
+            <div v-if="meta.total > 0" class="flex items-center justify-between border-t border-slate-700 pt-4">
+                <div class="text-sm text-slate-400">
+                    Showing {{ (meta.current_page - 1) * meta.per_page + 1 }}–{{ Math.min(meta.current_page * meta.per_page, meta.total) }} of {{ meta.total }}
                 </div>
-                <p v-if="activeTab === 'shared' && sharedSites.length === 0" class="text-site-body">
-                    No sites shared with you yet.
-                </p>
+                <div class="flex gap-2">
+                    <button
+                        type="button"
+                        class="rounded px-2 py-1 text-sm text-site-body hover:bg-slate-700 disabled:opacity-50"
+                        :disabled="meta.current_page <= 1"
+                        @click="goToPage(meta.current_page - 1)"
+                    >
+                        Previous
+                    </button>
+                    <span class="px-2 py-1 text-sm text-slate-400">
+                        Page {{ meta.current_page }} of {{ meta.last_page }}
+                    </span>
+                    <button
+                        type="button"
+                        class="rounded px-2 py-1 text-sm text-site-body hover:bg-slate-700 disabled:opacity-50"
+                        :disabled="meta.current_page >= meta.last_page"
+                        @click="goToPage(meta.current_page + 1)"
+                    >
+                        Next
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Create site modal/form -->
+        <!-- Error modal -->
         <div
-            v-show="createFormOpen"
+            v-show="errorModalOpen"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="create-site-title"
+            aria-labelledby="error-modal-title"
         >
             <div class="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-xl">
-                <h2 id="create-site-title" class="text-lg font-semibold text-site-heading">Create a site</h2>
-                <p class="mt-1 text-sm text-site-body">New sites are created as drafts and are not viewable on the internet until published.</p>
-                <form class="mt-4 space-y-4" @submit.prevent="submitCreate">
-                    <div v-if="createError" class="rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-300">
-                        {{ createError }}
-                    </div>
-                    <div>
-                        <label for="create-site-name" class="block text-sm font-medium text-site-body">Site name</label>
-                        <input
-                            id="create-site-name"
-                            v-model="createSiteName"
-                            type="text"
-                            required
-                            class="mt-1 block w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-site-heading"
-                            placeholder="My website"
-                        />
-                    </div>
-                    <div>
-                        <label for="create-domain" class="block text-sm font-medium text-site-body">Domain (optional)</label>
-                        <input
-                            id="create-domain"
-                            v-model="createDomain"
-                            type="text"
-                            class="mt-1 block w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-site-heading"
-                            placeholder="example.com"
-                        />
-                    </div>
-                    <div class="flex gap-3 pt-2">
-                        <button
-                            type="button"
-                            class="rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-site-body hover:bg-slate-800"
-                            @click="closeCreateForm"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            :disabled="createLoading"
-                            class="rounded-lg bg-cta px-4 py-2 text-sm font-medium text-white hover:bg-cta-hover disabled:opacity-60"
-                        >
-                            {{ createLoading ? 'Creating…' : 'Create' }}
-                        </button>
-                    </div>
-                </form>
+                <h2 id="error-modal-title" class="text-lg font-semibold text-red-400">Error</h2>
+                <p class="mt-2 text-sm text-site-body">{{ errorModalMessage }}</p>
+                <div class="mt-6 flex justify-end">
+                    <button
+                        type="button"
+                        class="rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-site-body hover:bg-slate-800"
+                        @click="closeErrorModal"
+                    >
+                        OK
+                    </button>
+                </div>
             </div>
         </div>
     </div>

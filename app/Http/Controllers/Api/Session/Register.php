@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Api\Session;
 
 use App\Http\Controllers\ApiBase;
-use App\Mail\VerificationCodeMail;
+use App\Jobs\SendMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class Register extends ApiBase
@@ -46,7 +47,11 @@ class Register extends ApiBase
             return ['message' => 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.'];
         }
 
-        $existingUser = DB::table('user')->where('email', $email)->first();
+        $registerQuery = DB::table('user')->where('email', $email);
+        if (Schema::hasColumn('user', 'deleted')) {
+            $registerQuery->where('deleted', false);
+        }
+        $existingUser = $registerQuery->first();
         if ($existingUser) {
             $this->setFail();
             $this->setResponseCode(409);
@@ -85,7 +90,8 @@ class Register extends ApiBase
         ]);
 
         try {
-            Mail::to($email)->send(new VerificationCodeMail($code, $email));
+            Log::info("Email $email has been sent.", [$email, $firstName, $lastName, $code]);
+            SendMail::dispatch($email, $firstName . ' ' . $lastName, 2, ['first_name'=>$firstName, 'token'=>$code]);
         } catch (\Throwable $e) {
             $this->setFail();
             $this->setResponseCode(500);

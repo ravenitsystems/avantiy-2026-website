@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\Session;
 
 use App\Http\Controllers\ApiBase;
+use App\Services\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Hash;
 use PragmaRX\Google2FA\Google2FA;
 
@@ -23,7 +25,11 @@ class Login extends ApiBase
             return ['message' => 'Email and password are required.'];
         }
 
-        $row = DB::table('user')->where('email', $email)->first();
+        $loginQuery = DB::table('user')->where('email', $email);
+        if (Schema::hasColumn('user', 'deleted')) {
+            $loginQuery->where('deleted', false);
+        }
+        $row = $loginQuery->first();
 
         if (!$row || !Hash::check($password, $row->password)) {
             $this->setFail();
@@ -68,6 +74,8 @@ class Login extends ApiBase
         }
 
         $request->session()->put('user_id', $row->id);
+
+        ActivityLog::log('session.login', ['email' => $row->email, 'user_id' => $row->id]);
 
         return [
             'user_id' => $row->id,

@@ -3,9 +3,11 @@ import { ref, computed, onMounted } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import axios from 'axios';
 import { useSession } from '../composables/useSession';
+import { useToast } from '../composables/useToast';
 
 const router = useRouter();
 const { fetchSession } = useSession();
+const toast = useToast();
 
 const step = ref('details');
 const countries = ref([]);
@@ -28,7 +30,6 @@ const invalidFields = ref({
     passwordConfirmation: false,
 });
 const loading = ref(false);
-const errorMessage = ref('');
 
 const passwordsMatch = computed(() =>
     password.value === passwordConfirmation.value || !passwordConfirmation.value
@@ -78,7 +79,6 @@ onMounted(async () => {
 });
 
 async function onSubmit() {
-    errorMessage.value = '';
     if (step.value === 'details') {
         if (!validateDetailsForm()) {
             return;
@@ -97,7 +97,7 @@ async function onSubmit() {
                 marketing: false,
             });
             if (data.status === 'FAIL') {
-                errorMessage.value = data.data?.message ?? 'Registration failed.';
+                toast.error(data.data?.message ?? 'Registration failed.');
                 return;
             }
             step.value = 'verify';
@@ -107,7 +107,7 @@ async function onSubmit() {
                 verification_code: verificationCode.value,
             });
             if (data.status === 'FAIL') {
-                errorMessage.value = data.data?.message ?? 'Verification failed.';
+                toast.error(data.data?.message ?? 'Verification failed.');
                 return;
             }
             await fetchSession();
@@ -115,7 +115,7 @@ async function onSubmit() {
         }
     } catch (err) {
         const msg = err.response?.data?.data?.message ?? err.response?.data?.message ?? 'Something went wrong.';
-        errorMessage.value = msg;
+        toast.error(msg);
     } finally {
         loading.value = false;
     }
@@ -146,7 +146,6 @@ function validateDetailsForm() {
 function backToDetails() {
     step.value = 'details';
     verificationCode.value = '';
-    errorMessage.value = '';
     invalidFields.value = { firstName: false, lastName: false, email: false, country: false, telephone: false, password: false, passwordConfirmation: false };
 }
 </script>
@@ -292,7 +291,6 @@ function backToDetails() {
                         />
                         <p v-if="passwordConfirmation && !passwordsMatch" class="mt-1 text-xs text-red-400">Passwords do not match.</p>
                     </div>
-                    <p v-if="errorMessage" class="text-sm text-red-400">{{ errorMessage }}</p>
                     <button
                         type="submit"
                         :disabled="loading"
@@ -322,7 +320,6 @@ function backToDetails() {
                         />
                         <p class="mt-1 text-xs text-slate-400">Enter the code from your email</p>
                     </div>
-                    <p v-if="errorMessage" class="text-sm text-red-400">{{ errorMessage }}</p>
                     <button
                         type="submit"
                         :disabled="loading || verificationCode.length !== 6"
