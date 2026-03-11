@@ -1,6 +1,9 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useSession } from "./composables/useSession";
 
+const locale = typeof window !== 'undefined' ? (window.__LOCALE || 'en') : 'en';
+const base = `/${locale}`;
+
 const PUBLIC_ROUTE_NAMES = [
     "public-home",
     "public-ecommerce",
@@ -220,7 +223,7 @@ const routes = [
 ];
 
 const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHistory(base),
     routes,
 });
 

@@ -2,6 +2,7 @@ import './bootstrap';
 import axios from 'axios';
 import { createApp } from "vue";
 import router from "./router";
+import { i18n } from "./i18n";
 import App from "./App.vue";
 import { useSession } from "./composables/useSession";
 
@@ -35,4 +36,4 @@ axios.interceptors.response.use(
     }
 );
 
-createApp(App).use(router).mount("#app");
+createApp(App).use(i18n).use(router).mount("#app");

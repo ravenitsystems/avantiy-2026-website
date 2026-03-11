@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ $locale ?? config('app.locale') }}">
     <head>
         <meta charset="utf-8" />
         <meta http-equiv="x-ua-compatible" content="ie=edge" />
@@ -12,8 +12,9 @@
         <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/favicon-32x32.png') }}" />
         <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/favicon-16x16.png') }}" />
         <script>window.__APP_ENV = @json(config('app.env'));</script>
-        @vite(['resources/js/app.js'])
-        @vite(['resources/css/app.css'])
+        <script>window.__LOCALE = @json($locale ?? config('app.locale'));</script>
+        <script>window.__SUPPORTED_LOCALES = @json(config('locales.supported', ['en']));</script>
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body>
         <div id="app"></div>
