@@ -36,6 +36,7 @@ class Status extends ApiBase
                 'active_team_name' => null,
                 'pending_invitation_count' => 0,
                 'teams_list' => [],
+                'locale' => config('app.locale'),
             ];
         }
 
@@ -62,6 +63,7 @@ class Status extends ApiBase
                 'active_team_name' => null,
                 'pending_invitation_count' => 0,
                 'teams_list' => [],
+                'locale' => config('app.locale'),
             ];
         }
 
@@ -156,6 +158,7 @@ class Status extends ApiBase
             'active_team_name' => $activeTeamName,
             'pending_invitation_count' => $pendingInvitationCount,
             'teams_list' => $teamsList,
+            'locale' => config('app.locale'),
         ];
     }
 }
