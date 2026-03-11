@@ -6,22 +6,34 @@ use App\Http\Controllers\ApiBase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 
 class Index extends ApiBase
 {
     public function handle(Request $request): array
     {
         $rows = DB::table('country')
+            ->when(Schema::hasColumn('country', 'enabled'), fn ($q) => $q->where('enabled', true))
             ->orderBy('order_index')
             ->orderBy('name')
-            ->get(['id', 'name', 'alpha_2', 'dial_code']);
+            ->get(
+                Schema::hasColumn('country', 'flag_svg')
+                    ? ['id', 'name', 'alpha_2', 'dial_code', 'flag_svg']
+                    : ['id', 'name', 'alpha_2', 'dial_code']
+            );
 
-        $countries = $rows->map(fn ($r) => [
-            'id' => (int) $r->id,
-            'name' => $r->name,
-            'alpha_2' => $r->alpha_2,
-            'dial_code' => $r->dial_code,
-        ])->values()->all();
+        $countries = $rows->map(function ($r) {
+            $item = [
+                'id' => (int) $r->id,
+                'name' => $r->name,
+                'alpha_2' => $r->alpha_2,
+                'dial_code' => $r->dial_code,
+            ];
+            if (isset($r->flag_svg) && $r->flag_svg !== null && $r->flag_svg !== '') {
+                $item['flag_svg'] = $r->flag_svg;
+            }
+            return $item;
+        })->values()->all();
 
         $detectedAlpha2 = $this->detectCountryAlpha2($request);
         if ($detectedAlpha2 !== null) {

@@ -1,8 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
+import { isValidPhoneNumber } from 'libphonenumber-js/max';
 import { useSession } from '../composables/useSession';
 import { useToast } from '../composables/useToast';
+import CountrySelect from '../components/CountrySelect.vue';
+import EmailInput from '../components/EmailInput.vue';
+import PhoneInput from '../components/PhoneInput.vue';
 
 const { fetchSession } = useSession();
 const toast = useToast();
@@ -61,6 +65,17 @@ onMounted(async () => {
 });
 
 async function onSubmit() {
+    const tel = (telephone.value || '').replace(/\s/g, '').trim();
+    if (tel !== '') {
+        const digitsOnly = tel.replace(/\D/g, '');
+        const isE164Shape = tel.startsWith('+') && digitsOnly.length >= 10 && digitsOnly.length <= 15;
+        const country = countries.value.find((c) => Number(c.id) === Number(countryId.value));
+        const defaultCountry = country?.alpha_2;
+        if (!isE164Shape || !isValidPhoneNumber(tel, defaultCountry)) {
+            toast.error('Please enter a valid phone number.');
+            return;
+        }
+    }
     saving.value = true;
     try {
         const { data } = await axios.post('/api/session/updateprofile', {
@@ -132,41 +147,31 @@ async function onSubmit() {
                     </div>
                 </div>
                 <div class="mt-4">
-                    <label for="profile-email" :class="labelClass">Email address</label>
-                    <input
+                    <EmailInput
                         id="profile-email"
+                        label="Email address"
                         v-model="email"
-                        type="email"
-                        autocomplete="email"
-                        required
-                        :class="inputClass"
                         placeholder="you@example.com"
-                    />
-                </div>
-                <div class="mt-4">
-                    <label for="profile-telephone" :class="labelClass">Phone number</label>
-                    <input
-                        id="profile-telephone"
-                        v-model="telephone"
-                        type="tel"
-                        autocomplete="tel"
-                        :class="inputClass"
-                        placeholder="+1 555 123 4567"
-                    />
-                </div>
-                <div class="mt-4">
-                    <label for="profile-country" :class="labelClass">Country</label>
-                    <select
-                        id="profile-country"
-                        v-model.number="countryId"
                         required
-                        class="mt-1 block w-full rounded-lg border border-slate-600 bg-slate-800 pl-3 pr-8 py-2 text-site-heading focus:border-cta focus:outline-none focus:ring-1 focus:ring-cta"
-                    >
-                        <option v-if="!countries.length" value="">Loading…</option>
-                        <option v-for="c in countries" :key="c.id" :value="c.id">
-                            {{ c.name }}
-                        </option>
-                    </select>
+                    />
+                </div>
+                <div class="mt-4">
+                    <PhoneInput
+                        id="profile-telephone"
+                        label="Phone number"
+                        v-model="telephone"
+                        :countries="countries"
+                        placeholder="555 123 4567"
+                    />
+                </div>
+                <div class="mt-4">
+                    <CountrySelect
+                        id="profile-country"
+                        label="Country"
+                        v-model="countryId"
+                        :countries="countries"
+                        placeholder="Loading…"
+                    />
                 </div>
             </section>
 

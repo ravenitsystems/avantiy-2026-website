@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 import { useSession } from '../composables/useSession';
 import { useToast } from '../composables/useToast';
+import EmailInput from '../components/EmailInput.vue';
 
 const toast = useToast();
 const { user, fetchSession } = useSession();
@@ -205,14 +206,12 @@ onMounted(() => {
                         />
                     </div>
                     <div>
-                        <label for="create-client-email" class="block text-sm font-medium text-site-body">Email</label>
-                        <input
+                        <EmailInput
                             id="create-client-email"
+                            label="Email"
                             v-model="createEmail"
-                            type="email"
-                            required
-                            class="mt-1 block w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-site-heading"
                             placeholder="client@example.com"
+                            required
                         />
                     </div>
                     <div>

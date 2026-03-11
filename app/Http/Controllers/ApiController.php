@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\ApiRequestLoggingMiddleware;
+use App\Http\Middleware\DudaApiSecurityMiddleware;
+use App\Http\Middleware\EpicurusApiSecurityMiddleware;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -41,6 +44,27 @@ class ApiController extends Controller
         if ((!$api_handler instanceof ApiBase)) {
             abort(404, '');
         }
+
+        if (strcasecmp($module, 'Epicurus') === 0) {
+            $loggingMiddleware = app(ApiRequestLoggingMiddleware::class);
+
+            $securityMiddleware = (!str_starts_with(strtolower($call), 'notify')) ? app(EpicurusApiSecurityMiddleware::class) : app(DudaApiSecurityMiddleware::class);
+
+            $pipeline = static function (Request $req) use ($api_handler, $id1, $id2, $id3, $id4): JsonResponse {
+                return $api_handler->processCall($req, $id1, $id2, $id3, $id4);
+            };
+
+            $pipeline = static function (Request $req) use ($securityMiddleware, $pipeline): JsonResponse {
+                return $securityMiddleware->handle($req, $pipeline);
+            };
+
+            $pipeline = static function (Request $req) use ($loggingMiddleware, $pipeline): JsonResponse {
+                return $loggingMiddleware->handle($req, $pipeline);
+            };
+
+            return $pipeline($request);
+        }
+
         return $api_handler->processCall($request, $id1, $id2, $id3, $id4);
     }
 }

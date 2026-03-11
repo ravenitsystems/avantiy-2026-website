@@ -4,6 +4,7 @@ import { RouterLink, useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
 import { useSession } from '../composables/useSession';
 import { useToast } from '../composables/useToast';
+import EmailInput from '../components/EmailInput.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -75,18 +76,13 @@ function backToCredentials() {
 
                 <form class="mt-6 space-y-4" @submit.prevent="onSubmit">
                     <template v-if="step === 'credentials'">
-                        <div>
-                            <label for="login-email" class="block text-sm font-medium text-site-body">Email</label>
-                            <input
-                                id="login-email"
-                                v-model="email"
-                                type="email"
-                                autocomplete="email"
-                                required
-                                class="mt-1 block w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-site-heading placeholder-slate-500 focus:border-cta focus:outline-none focus:ring-1 focus:ring-cta"
-                                placeholder="you@example.com"
-                            />
-                        </div>
+                        <EmailInput
+                            id="login-email"
+                            label="Email"
+                            v-model="email"
+                            placeholder="you@example.com"
+                            required
+                        />
                         <div>
                             <label for="login-password" class="block text-sm font-medium text-site-body">Password</label>
                             <input

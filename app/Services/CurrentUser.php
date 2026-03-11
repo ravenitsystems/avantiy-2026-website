@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Duda\Partner;
 use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
@@ -135,7 +136,8 @@ class CurrentUser
             return null;
         }
         if (self::$duda_username === null) {
-            $duda_username = Duda::createDudaAccount(self::$email, self::$first_name, self::$last_name);
+            $duda = new Partner();
+            $duda_username = $duda->createAccount(self::$email, self::$first_name, self::$last_name);
             DB::table('user')->where('id', self::$user_id)->update(['duda_username' => $duda_username]);
         }
         self::reload();

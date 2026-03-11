@@ -3,8 +3,10 @@ import { ref, computed, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import axios from 'axios';
 import { useToast } from '../composables/useToast';
+import { useSession } from '../composables/useSession';
 
 const toast = useToast();
+const { user } = useSession();
 const templates = ref([]);
 const categories = ref([]);
 const meta = ref({ total: 0, per_page: 24, current_page: 1, last_page: 1 });
@@ -114,10 +116,12 @@ async function finishCreateSite() {
             site_name: name,
             site_description: createForm.value.site_description?.trim() ?? '',
             template_id: selectedTemplate.value.template_id,
+            team_id: user.value?.activeTeamId ?? null,
         }, { timeout: 200000 });
         const payload = data?.data ?? data;
-        if (payload?.redirect_url) {
-            window.location.href = payload.redirect_url;
+        const editorLink = payload?.redirect_url ?? payload?.link;
+        if (editorLink) {
+            window.location.href = editorLink;
             return;
         }
         createSiteErrorMessage.value = payload?.message ?? 'Could not create site.';

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\Session;
 
 use App\Http\Controllers\ApiBase;
 use App\Jobs\SendMail;
+use App\Services\EmailValidation;
+use App\Services\PhoneValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -40,6 +42,13 @@ class Register extends ApiBase
             return ['message' => 'Invalid email address.'];
         }
 
+        if (EmailValidation::rejectEmailWithPlus($email)) {
+            $this->setFail();
+            $this->setResponseCode(400);
+
+            return ['message' => EmailValidation::rejectEmailWithPlusMessage()];
+        }
+
         if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,}$/', $password)) {
             $this->setFail();
             $this->setResponseCode(400);
@@ -62,6 +71,13 @@ class Register extends ApiBase
         $countryExists = DB::table('country')->where('id', $countryId)->exists();
         if (!$countryExists) {
             $countryId = 840;
+        }
+
+        if ($telephone !== '' && !PhoneValidation::isValidE164($telephone)) {
+            $this->setFail();
+            $this->setResponseCode(400);
+
+            return ['message' => PhoneValidation::invalidPhoneMessage()];
         }
 
         $code = (string) random_int(10 ** (self::CODE_LENGTH - 1), 10 ** self::CODE_LENGTH - 1);

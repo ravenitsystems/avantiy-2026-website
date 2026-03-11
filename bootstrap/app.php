@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->job(new \App\Jobs\UpdateTemplates)->twiceDaily(0, 12)->name('update-templates');
         $schedule->job(new \App\Jobs\RefreshSiteImages)->twiceDaily(0, 12)->name('refresh-site-images');
+        $schedule->job(new \App\Jobs\RefreshCurrencyExchangeRates)->hourly()->name('refresh-currency-exchange-rates');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

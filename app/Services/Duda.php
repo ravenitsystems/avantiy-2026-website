@@ -38,63 +38,9 @@ class Duda
         "SEO_OVERVIEW"
     ];
 
-    /**
-     * Creates a Duda user, this method only creates the account on the duda end it does not record it against the user
-     * @param string $email
-     * @param string $first_name
-     * @param string $last_name
-     * @return string
-     * @throws Exception
-     */
-    public static function createDudaAccount(string $email, string $first_name, string $last_name): string
-    {
-        $duda_username = 'avw_' . substr(md5(microtime(true)), 0, 12);
-        do {
-            $usernameQuery = DB::table('user')->where('duda_username', $duda_username);
-            if (Schema::hasColumn('user', 'deleted')) {
-                $usernameQuery->where('deleted', false);
-            }
-            $username_search = $usernameQuery->first('id');
-            if ($username_search !== null) {
-                $duda_username = 'avw_' . substr(md5(microtime(true)), 0, 12);
-            }
-        } while ($username_search !== null);
-        $payload = [
-            'account_name' => $duda_username,
-            'first_name' => $first_name,
-            'last_name' => $last_name,
-            'email' => $email,
-            'account_type' => 'CUSTOMER'
-        ];
-        self::makeRequest('/api/accounts/create', 'POST', $payload, null, 204);
-        return $duda_username;
-    }
 
-    /**
-     * Returns a list of available templates from Duda API.
-     * Filters for ADVANCED-2.0 editor only.
-     *
-     * @return array<int, array> Associative array keyed by template_id
-     * @throws Exception
-     */
-    public static function getAvailableTemplates(): array
-    {
-        $response = self::makeRequest('/api/sites/multiscreen/templates', 'GET', null, null);
-        $items = $response['data'] ?? [];
-        if (!is_array($items)) {
-            return [];
-        }
-        $data = [];
-        foreach ($items as $item) {
-            if (($item['editor'] ?? '') === 'ADVANCED-2.0') {
-                $templateId = $item['template_id'] ?? null;
-                if ($templateId !== null && $templateId !== '') {
-                    $data[(int) $templateId] = $item;
-                }
-            }
-        }
-        return $data;
-    }
+
+
 
     /**
      * Creates a website by use of a template, there is no AI technology with this option

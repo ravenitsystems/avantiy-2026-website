@@ -4,12 +4,17 @@ use App\Http\Controllers\ApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('dashboard-app');
 });
 
 Route::get('/dashboard/{vue_capture?}', function () {
     return view('dashboard-app');
 })->where('vue_capture', '[\/\w\.-]*');
+
+// Public marketing pages (SPA): serve the app so Vue Router can handle the path
+Route::get('/{path}', function () {
+    return view('dashboard-app');
+})->where('path', 'ecommerce|ai-assistant|seo|templates|pricing|terms|privacy|saas-agreement');
 
 
 

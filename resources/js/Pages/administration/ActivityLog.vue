@@ -98,7 +98,7 @@ onMounted(() => {
     <div class="max-w-6xl">
         <div>
             <h1 class="text-xl font-semibold text-site-heading">Activity Log</h1>
-            <p class="mt-1 text-sm text-site-body">View and filter activity log entries. Requires admin code A or L.</p>
+            <p class="mt-1 text-sm text-site-body">View and filter activity log entries. Requires admin code A or C (Customer Admin).</p>
         </div>
 
         <!-- Filters -->

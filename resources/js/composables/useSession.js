@@ -53,16 +53,47 @@ export function useSession() {
         return code != null && String(code).trim() !== "";
     });
 
-    /** True when admin_code contains 'A' or 'T' - required for template administration */
-    const isTemplateAdmin = computed(() => {
+    /** CUSTOMER ADMIN: Registered Users, Invoices, Activity Log = A or C */
+    const hasCustomerAdmin = computed(() => {
         const code = String(sessionPayload()?.admin_code ?? "");
-        return code.includes("A") || code.includes("T");
+        return code.includes("A") || code.includes("C");
     });
 
-    /** True when admin_code contains 'A' or 'L' - required for activity log */
-    const isActivityLogAdmin = computed(() => {
+    /** SITE ADMIN: Categories, Templates = A or S */
+    const hasSiteAdmin = computed(() => {
         const code = String(sessionPayload()?.admin_code ?? "");
-        return code.includes("A") || code.includes("L");
+        return code.includes("A") || code.includes("S");
+    });
+
+    /** DEBUG TOOLS: Duda API Log = A or D */
+    const hasDudaApiLogs = computed(() => {
+        const code = String(sessionPayload()?.admin_code ?? "");
+        return code.includes("A") || code.includes("D");
+    });
+
+    /** EPICURUS: Customers, Activity Log = A or E */
+    const hasEpicurusCustomers = computed(() => {
+        const code = String(sessionPayload()?.admin_code ?? "");
+        return code.includes("A") || code.includes("E");
+    });
+
+    const hasEpicurusActivityLogs = computed(() => {
+        const code = String(sessionPayload()?.admin_code ?? "");
+        return code.includes("A") || code.includes("E");
+    });
+
+    /** EPICURUS: Manifest = A only */
+    const hasEpicurusManifest = computed(() => {
+        const code = String(sessionPayload()?.admin_code ?? "");
+        return code.includes("A");
+    });
+
+    const hasAnyEpicurusAccess = computed(() => {
+        return (
+            hasEpicurusCustomers.value ||
+            hasEpicurusActivityLogs.value ||
+            hasEpicurusManifest.value
+        );
     });
 
     async function fetchSession() {
@@ -106,8 +137,13 @@ export function useSession() {
         userId,
         user,
         isAdmin,
-        isTemplateAdmin,
-        isActivityLogAdmin,
+        hasCustomerAdmin,
+        hasSiteAdmin,
+        hasDudaApiLogs,
+        hasEpicurusCustomers,
+        hasEpicurusActivityLogs,
+        hasEpicurusManifest,
+        hasAnyEpicurusAccess,
         fetchSession,
         clearSession,
         switchTeam,

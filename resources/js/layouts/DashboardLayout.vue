@@ -7,7 +7,19 @@ import { useSession } from '../composables/useSession';
 
 const route = useRoute();
 const router = useRouter();
-const { fetchSession, userId, isAdmin, isTemplateAdmin, isActivityLogAdmin, user } = useSession();
+const {
+    fetchSession,
+    userId,
+    isAdmin,
+    hasCustomerAdmin,
+    hasSiteAdmin,
+    hasDudaApiLogs,
+    hasEpicurusCustomers,
+    hasEpicurusActivityLogs,
+    hasEpicurusManifest,
+    hasAnyEpicurusAccess,
+    user,
+} = useSession();
 const sidebarOpen = ref(false);
 
 const SESSION_CHECK_INTERVAL_MS = 60_000; // 60 seconds
@@ -43,10 +55,10 @@ onUnmounted(() => {
     }
 });
 
-const headerLogoUrl = '/images/header-logo.png';
+const headerLogoUrl = '/images/landing/header_logo.svg';
 
 const administrationOpen = ref(false);
-const templatesOpen = ref(false);
+const openAdminGroup = ref(null);
 
 const mainNavItems = [
     { path: '/dashboard', label: 'Home', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -64,23 +76,75 @@ const clientsNavItem = {
 const teamsNavIcon = 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 0112 0v1h-6zm-4-6a4 4 0 11-8 0 4 4 0 018 0z';
 
 const administrationNavItem = computed(() => {
-    const children = [
-        { path: '/dashboard/administration/invoices', label: 'Invoice', name: 'dashboard-administration-invoices' },
-        { path: '/dashboard/administration/activity-audit', label: 'Activity Audit', name: 'dashboard-administration-activity-audit' },
-        ...(isActivityLogAdmin.value
-            ? [{ path: '/dashboard/administration/activity-log', label: 'ACTIVITY LOG', name: 'dashboard-administration-activity-log' }]
-            : []),
-        { path: '/dashboard/administration/registered-users', label: 'Registered Users', name: 'dashboard-administration-registered-users' },
-    ];
-    if (isTemplateAdmin.value) {
+    const children = [];
+
+    // CUSTOMER ADMIN: Registered Users, Invoices, Activity Log = A,C
+    if (hasCustomerAdmin.value) {
         children.push({
-            label: 'Templates',
+            label: 'CUSTOMER ADMIN',
             children: [
-                { path: '/dashboard/administration/templates/categories', label: 'Categories', name: 'dashboard-administration-templates-categories' },
-                { path: '/dashboard/administration/templates/templates', label: 'Templates', name: 'dashboard-administration-templates-templates' },
+                { path: '/dashboard/administration/registered-users', label: 'Registered Users', name: 'dashboard-administration-registered-users' },
+                { path: '/dashboard/administration/invoices', label: 'Invoices', name: 'dashboard-administration-invoices' },
+                { path: '/dashboard/administration/activity-log', label: 'Activity Log', name: 'dashboard-administration-activity-log' },
             ],
         });
     }
+
+    // SITE ADMIN: Categories, Templates = A,S
+    if (hasSiteAdmin.value) {
+        children.push({
+            label: 'SITE ADMIN',
+            children: [
+                { path: '/dashboard/administration/templates/categories', label: 'Categories', name: 'dashboard-administration-templates-categories' },
+                { path: '/dashboard/administration/templates/templates', label: 'Templates', name: 'dashboard-administration-templates-templates' },
+                { path: '/dashboard/administration/currencies', label: 'Currencies', name: 'dashboard-administration-currencies' },
+                { path: '/dashboard/administration/countries', label: 'Countries', name: 'dashboard-administration-countries' },
+            ],
+        });
+    }
+
+    // DEBUG TOOLS: Duda API Log = A,D
+    if (hasDudaApiLogs.value) {
+        children.push({
+            label: 'DEBUG TOOLS',
+            children: [
+                { path: '/dashboard/administration/duda-api-logs', label: 'Duda API Log', name: 'dashboard-administration-duda-api-logs' },
+            ],
+        });
+    }
+
+    // EPICURUS: Customers, Activity Log, Manifest = A,E and A
+    if (hasAnyEpicurusAccess.value) {
+        const epicurusChildren = [];
+        if (hasEpicurusCustomers.value) {
+            epicurusChildren.push({
+                path: '/dashboard/administration/epicurus/customers',
+                label: 'Customers',
+                name: 'dashboard-administration-epicurus-customers',
+            });
+        }
+        if (hasEpicurusActivityLogs.value) {
+            epicurusChildren.push({
+                path: '/dashboard/administration/epicurus/activity-logs',
+                label: 'Activity Log',
+                name: 'dashboard-administration-epicurus-activity-logs',
+            });
+        }
+        if (hasEpicurusManifest.value) {
+            epicurusChildren.push({
+                path: '/dashboard/administration/epicurus/manifest',
+                label: 'Manifest',
+                name: 'dashboard-administration-epicurus-manifest',
+            });
+        }
+        if (epicurusChildren.length > 0) {
+            children.push({
+                label: 'EPICURUS',
+                children: epicurusChildren,
+            });
+        }
+    }
+
     return {
         label: 'Administration',
         icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
@@ -101,7 +165,10 @@ const navItems = computed(() => {
         });
     }
     if (isAdmin.value) {
-        items.push(administrationNavItem.value);
+        const adminItem = administrationNavItem.value;
+        if (adminItem.children?.length) {
+            items.push(adminItem);
+        }
     }
     return items;
 });
@@ -134,17 +201,41 @@ watch(isAdministrationRoute, (on) => {
     if (on) administrationOpen.value = true;
 }, { immediate: true });
 
-// Keep Templates open when viewing a templates child route
-const isTemplatesRoute = computed(() =>
-    route.path.startsWith('/dashboard/administration/templates/')
+function toggleAdminGroup(label) {
+    openAdminGroup.value = openAdminGroup.value === label ? null : label;
+}
+
+// Keep nested admin groups open when viewing their child routes
+const isCustomerAdminRoute = computed(() =>
+    route.path.startsWith('/dashboard/administration/') &&
+    ['/dashboard/administration/registered-users', '/dashboard/administration/invoices', '/dashboard/administration/activity-log'].some((p) => route.path === p)
 );
-watch(isTemplatesRoute, (on) => {
-    if (on) templatesOpen.value = true;
+watch(isCustomerAdminRoute, (on) => {
+    if (on) openAdminGroup.value = 'CUSTOMER ADMIN';
 }, { immediate: true });
 
-function toggleTemplates() {
-    templatesOpen.value = !templatesOpen.value;
-}
+const isSiteAdminRoute = computed(() =>
+    route.path.startsWith('/dashboard/administration/templates/') ||
+    route.path === '/dashboard/administration/currencies' ||
+    route.path === '/dashboard/administration/countries'
+);
+watch(isSiteAdminRoute, (on) => {
+    if (on) openAdminGroup.value = 'SITE ADMIN';
+}, { immediate: true });
+
+const isDebugToolsRoute = computed(() =>
+    route.path === '/dashboard/administration/duda-api-logs'
+);
+watch(isDebugToolsRoute, (on) => {
+    if (on) openAdminGroup.value = 'DEBUG TOOLS';
+}, { immediate: true });
+
+const isEpicurusRoute = computed(() =>
+    route.path.startsWith('/dashboard/administration/epicurus/')
+);
+watch(isEpicurusRoute, (on) => {
+    if (on) openAdminGroup.value = 'EPICURUS';
+}, { immediate: true });
 </script>
 
 <template>
@@ -217,7 +308,7 @@ function toggleTemplates() {
                                 <RouterLink
                                     v-if="child.path"
                                     :to="child.path"
-                                    class="ml-8 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
+                                    class="ml-8 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
                                     :class="route.path === child.path
                                         ? 'bg-white/15 font-medium text-site-heading'
                                         : 'text-site-body hover:bg-white/10 hover:text-site-heading'"
@@ -228,18 +319,18 @@ function toggleTemplates() {
                                 <div v-else-if="child.children?.length" class="space-y-0.5">
                                     <button
                                         type="button"
-                                        class="ml-8 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium uppercase tracking-wide transition-colors text-left text-slate-500 hover:bg-white/10 hover:text-site-heading"
-                                        :aria-expanded="templatesOpen"
-                                        @click="toggleTemplates"
+                                        class="ml-8 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium uppercase tracking-wide transition-colors text-left text-slate-500 hover:bg-white/10 hover:text-site-heading"
+                                        :aria-expanded="openAdminGroup === child.label"
+                                        @click="toggleAdminGroup(child.label)"
                                     >
                                         {{ child.label }}
                                     </button>
-                                    <div v-show="templatesOpen" class="space-y-0.5">
+                                    <div v-show="openAdminGroup === child.label" class="space-y-0.5">
                                         <RouterLink
                                             v-for="sub in child.children"
                                             :key="sub.path"
                                             :to="sub.path"
-                                            class="ml-12 flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+                                            class="ml-12 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors"
                                             :class="route.path === sub.path
                                                 ? 'bg-white/15 font-medium text-site-heading'
                                                 : 'text-site-body hover:bg-white/10 hover:text-site-heading'"

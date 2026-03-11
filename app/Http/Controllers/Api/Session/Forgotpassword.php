@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Session;
 
 use App\Http\Controllers\ApiBase;
 use App\Jobs\SendMail;
+use App\Services\EmailValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -25,6 +26,13 @@ class Forgotpassword extends ApiBase
             $this->setResponseCode(400);
 
             return ['message' => 'A valid email address is required.'];
+        }
+
+        if (EmailValidation::rejectEmailWithPlus($email)) {
+            $this->setFail();
+            $this->setResponseCode(400);
+
+            return ['message' => EmailValidation::rejectEmailWithPlusMessage()];
         }
 
         $forgotQuery = DB::table('user')->where('email', $email);

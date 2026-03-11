@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\ClientAssociation;
 use App\Models\Team;
 use App\Services\CurrentUser;
+use App\Services\EmailValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -128,6 +129,13 @@ class Create extends ApiBase
             $this->setResponseCode(400);
 
             return ['message' => 'Invalid email address.'];
+        }
+
+        if (EmailValidation::rejectEmailWithPlus($email)) {
+            $this->setFail();
+            $this->setResponseCode(400);
+
+            return ['message' => EmailValidation::rejectEmailWithPlusMessage()];
         }
 
         $permissions = $request->input('permissions');

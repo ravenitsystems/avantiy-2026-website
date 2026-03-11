@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import { useSession } from '../composables/useSession';
 import { useToast } from '../composables/useToast';
+import EmailInput from '../components/EmailInput.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -679,10 +680,12 @@ watch(teamId, (newId, oldId) => {
         <!-- Invite Tab -->
         <div v-show="activeTab === 'invite'">
             <div class="max-w-lg space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-site-body">Email address</label>
-                    <input v-model="inviteEmail" type="email" class="mt-1 block w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-site-heading" placeholder="user@example.com" />
-                </div>
+                <EmailInput
+                    id="invite-email"
+                    label="Email address"
+                    v-model="inviteEmail"
+                    placeholder="user@example.com"
+                />
                 <div>
                     <label class="block text-sm font-medium text-site-body">Role</label>
                     <select v-model="inviteRoleId" class="mt-1 block w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-site-heading">

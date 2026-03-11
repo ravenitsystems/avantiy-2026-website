@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Session;
 
 use App\Http\Controllers\ApiBase;
 use App\Services\ActivityLog;
+use App\Services\EmailValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,13 @@ class Login extends ApiBase
             $this->setResponseCode(400);
 
             return ['message' => 'Email and password are required.'];
+        }
+
+        if (EmailValidation::rejectEmailWithPlus($email)) {
+            $this->setFail();
+            $this->setResponseCode(400);
+
+            return ['message' => EmailValidation::rejectEmailWithPlusMessage()];
         }
 
         $loginQuery = DB::table('user')->where('email', $email);

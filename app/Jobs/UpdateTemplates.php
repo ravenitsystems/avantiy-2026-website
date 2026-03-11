@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Duda\Partner;
 use App\Services\Duda;
 use Exception;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -14,15 +15,15 @@ class UpdateTemplates implements ShouldQueue
 {
     use Queueable;
 
-    private const THUMBNAIL_SCALE_WIDTH = 500;
+    private const int THUMBNAIL_SCALE_WIDTH = 500;
 
-    private const THUMBNAIL_CROP_WIDTH = 470;
+    private const int THUMBNAIL_CROP_WIDTH = 470;
 
-    private const THUMBNAIL_CROP_HEIGHT = 310;
+    private const int THUMBNAIL_CROP_HEIGHT = 310;
 
-    private const THUMBNAIL_CROP_X = 15;
+    private const int THUMBNAIL_CROP_X = 15;
 
-    private const THUMBNAIL_CROP_Y = 15;
+    private const int THUMBNAIL_CROP_Y = 15;
 
     /**
      * Execute the job.
@@ -38,7 +39,8 @@ class UpdateTemplates implements ShouldQueue
         $templatesDir = public_path('media/templates');
         $this->ensureDirectoryExists($templatesDir);
 
-        $dudaTemplates = Duda::getAvailableTemplates();
+        $duda = new Partner();
+        $dudaTemplates = $duda->getAvailableTemplates();
         $incomingTemplateIds = array_keys($dudaTemplates);
 
         foreach ($dudaTemplates as $dudaTemplate) {

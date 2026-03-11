@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\Session;
 
 use App\Http\Controllers\ApiBase;
 use App\Services\CurrentUser;
+use App\Services\EmailValidation;
+use App\Services\PhoneValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -43,6 +45,12 @@ class Updateprofile extends ApiBase
             return ['message' => 'A valid email address is required.'];
         }
 
+        if (EmailValidation::rejectEmailWithPlus($email)) {
+            $this->setFail();
+            $this->setResponseCode(400);
+            return ['message' => EmailValidation::rejectEmailWithPlusMessage()];
+        }
+
         $existingQuery = DB::table('user')->where('id', $userId);
         if (Schema::hasColumn('user', 'deleted')) {
             $existingQuery->where('deleted', false);
@@ -72,6 +80,12 @@ class Updateprofile extends ApiBase
         }
         if ($countryId <= 0) {
             $countryId = (int) $existing->country_id;
+        }
+
+        if ($telephone !== '' && $telephone !== null && !PhoneValidation::isValidE164($telephone)) {
+            $this->setFail();
+            $this->setResponseCode(400);
+            return ['message' => PhoneValidation::invalidPhoneMessage()];
         }
 
         DB::table('user')->where('id', $userId)->update([

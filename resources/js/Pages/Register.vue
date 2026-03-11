@@ -2,8 +2,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import axios from 'axios';
+import { isValidPhoneNumber } from 'libphonenumber-js/max';
 import { useSession } from '../composables/useSession';
 import { useToast } from '../composables/useToast';
+import CountrySelect from '../components/CountrySelect.vue';
+import EmailInput from '../components/EmailInput.vue';
+import PhoneInput from '../components/PhoneInput.vue';
 
 const router = useRouter();
 const { fetchSession } = useSession();
@@ -130,13 +134,20 @@ function validateDetailsForm() {
     const criteria = computePasswordStrength(pw).criteria;
     const pwValid = criteria && criteria.length && criteria.lowercase && criteria.uppercase && criteria.number && criteria.special;
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
+    const telRaw = (telephone.value || '').replace(/\s/g, '').trim();
+    const digitsOnly = telRaw.replace(/\D/g, '');
+    const isE164Shape = telRaw.startsWith('+') && digitsOnly.length >= 10 && digitsOnly.length <= 15;
+    const country = countries.value.find((c) => Number(c.id) === Number(countryId.value));
+    const defaultCountry = country?.alpha_2;
+    const telephoneValid =
+        telRaw === '' || (isE164Shape && isValidPhoneNumber(telRaw, defaultCountry));
 
     invalidFields.value = {
         firstName: !firstName.value.trim(),
         lastName: !lastName.value.trim(),
         email: !email.value.trim() || !emailValid,
         country: !countryId.value,
-        telephone: false,
+        telephone: !telephoneValid,
         password: !pwValid,
         passwordConfirmation: !passwordsMatch.value,
     };
@@ -187,46 +198,37 @@ function backToDetails() {
                         />
                     </div>
                     <div>
-                        <label for="register-email" class="block text-sm font-medium text-site-body">Email</label>
-                        <input
+                        <EmailInput
                             id="register-email"
+                            label="Email"
                             v-model="email"
-                            type="email"
-                            autocomplete="email"
-                            required
-                            class="mt-1 block w-full rounded-lg border bg-slate-800 px-3 py-2 text-site-heading placeholder-slate-500 focus:outline-none focus:ring-1"
-                            :class="invalidFields.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-slate-600 focus:border-cta focus:ring-cta'"
                             placeholder="you@example.com"
-                            @input="clearInvalid('email')"
+                            :invalid="invalidFields.email"
+                            required
+                            @update:model-value="clearInvalid('email')"
                         />
                     </div>
                     <div>
-                        <label for="register-country" class="block text-sm font-medium text-site-body">Country</label>
-                        <select
+                        <CountrySelect
                             id="register-country"
-                            v-model.number="countryId"
-                            required
-                            class="mt-1 block w-full rounded-lg border bg-slate-800 pl-3 pr-8 py-2 text-site-heading focus:outline-none focus:ring-1"
-                            :class="invalidFields.country ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-slate-600 focus:border-cta focus:ring-cta'"
-                            @change="clearInvalid('country')"
-                        >
-                            <option v-if="!countries.length" value="">Loading countries…</option>
-                            <option v-for="c in countries" :key="c.id" :value="c.id">
-                                {{ c.name }}
-                            </option>
-                        </select>
+                            label="Country"
+                            v-model="countryId"
+                            :countries="countries"
+                            placeholder="Loading countries…"
+                            :invalid="invalidFields.country"
+                            @update:model-value="clearInvalid('country')"
+                        />
                     </div>
                     <div>
-                        <label for="register-telephone" class="block text-sm font-medium text-site-body">Phone number</label>
-                        <input
+                        <PhoneInput
                             id="register-telephone"
+                            label="Phone number"
                             v-model="telephone"
-                            type="tel"
-                            autocomplete="tel"
-                            class="mt-1 block w-full rounded-lg border bg-slate-800 px-3 py-2 text-site-heading placeholder-slate-500 focus:outline-none focus:ring-1"
-                            :class="invalidFields.telephone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-slate-600 focus:border-cta focus:ring-cta'"
-                            placeholder="+1 555 123 4567"
-                            @input="clearInvalid('telephone')"
+                            :countries="countries"
+                            :sync-country-id="countryId"
+                            placeholder="555 123 4567"
+                            :invalid="invalidFields.telephone"
+                            @update:model-value="clearInvalid('telephone')"
                         />
                     </div>
                     <div>

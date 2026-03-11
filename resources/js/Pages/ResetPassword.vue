@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import axios from 'axios';
 import { useToast } from '../composables/useToast';
+import EmailInput from '../components/EmailInput.vue';
 
 const router = useRouter();
 const toast = useToast();
@@ -104,18 +105,13 @@ function backToEmail() {
                 </p>
 
                 <form v-if="step === 'email'" class="mt-6 space-y-4" @submit.prevent="onSubmit">
-                    <div>
-                        <label for="reset-email" class="block text-sm font-medium text-site-body">Email</label>
-                        <input
-                            id="reset-email"
-                            v-model="email"
-                            type="email"
-                            autocomplete="email"
-                            required
-                            class="mt-1 block w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-site-heading placeholder-slate-500 focus:border-cta focus:outline-none focus:ring-1 focus:ring-cta"
-                            placeholder="you@example.com"
-                        />
-                    </div>
+                    <EmailInput
+                        id="reset-email"
+                        label="Email"
+                        v-model="email"
+                        placeholder="you@example.com"
+                        required
+                    />
                     <button
                         type="submit"
                         :disabled="loading"

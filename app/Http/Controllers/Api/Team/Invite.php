@@ -9,6 +9,7 @@ use App\Models\TeamInvitation;
 use App\Models\TeamRole;
 use App\Models\User;
 use App\Services\CurrentUser;
+use App\Services\EmailValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -62,6 +63,13 @@ class Invite extends ApiBase
             $this->setResponseCode(400);
 
             return ['message' => 'A valid email address is required.'];
+        }
+
+        if (EmailValidation::rejectEmailWithPlus($email)) {
+            $this->setFail();
+            $this->setResponseCode(400);
+
+            return ['message' => EmailValidation::rejectEmailWithPlusMessage()];
         }
 
         $teamRoleId = (int) $request->input('team_role_id', 0);
